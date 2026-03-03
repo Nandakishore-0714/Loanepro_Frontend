@@ -8,6 +8,7 @@ function UserDashboard() {
 
   const [myLoans, setMyLoans] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
 
   // --- Form State ---
   const [amount, setAmount] = useState("");
@@ -19,17 +20,36 @@ function UserDashboard() {
   const [calcRate, setCalcRate] = useState(8);
   const [calcDuration, setCalcDuration] = useState(12);
 
-  // 🔥 FETCH USER LOANS
+  // 🔐 Check Auth on Load
   useEffect(() => {
+    const token = localStorage.getItem("token");
+    const role = localStorage.getItem("role");
+
+    if (!token || role !== "USER") {
+      navigate("/");
+      return;
+    }
+
     fetchLoans();
   }, []);
 
+  // 🔥 FETCH USER LOANS
   const fetchLoans = async () => {
     try {
-      const res = await API.get("/loans/my");
+      const res = await API.get("/loans/my", {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+
       setMyLoans(res.data);
     } catch (error) {
       console.error("Error fetching loans:", error);
+
+      if (error.response?.status === 401) {
+        localStorage.clear();
+        navigate("/");
+      }
     } finally {
       setLoading(false);
     }
@@ -38,21 +58,37 @@ function UserDashboard() {
   // 🔥 APPLY LOAN
   const handleApply = async (e) => {
     e.preventDefault();
+    setSubmitting(true);
 
     try {
-      await API.post("/loans/apply", {
-        amount: Number(amount),
-        purpose,
-        duration: Number(duration),
-      });
+      await API.post(
+        "/loans/apply",
+        {
+          amount: Number(amount),
+          purpose,
+          duration: Number(duration),
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
 
       setAmount("");
       setPurpose("");
       setDuration("");
 
-      fetchLoans(); // Refresh list
+      fetchLoans();
     } catch (error) {
       console.error("Apply failed:", error);
+
+      if (error.response?.status === 401) {
+        localStorage.clear();
+        navigate("/");
+      }
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -77,7 +113,6 @@ function UserDashboard() {
   return (
     <div className="admin-layout dark-theme">
 
-      {/* Sidebar */}
       <aside className="sidebar">
         <h2 className="logo">LoanPro</h2>
         <ul>
@@ -86,11 +121,14 @@ function UserDashboard() {
         </ul>
         <div className="spacer"></div>
         <ul>
-          <li onClick={handleLogout} className="logout-link">Logout</li>
+          <li onClick={handleLogout} className="logout-link">
+            Logout
+          </li>
         </ul>
       </aside>
 
       <main className="main-content">
+
         <header className="topbar">
           <h1>User Dashboard</h1>
         </header>
@@ -178,8 +216,8 @@ function UserDashboard() {
               required
             />
 
-            <button type="submit" className="login-btn">
-              Apply
+            <button type="submit" className="login-btn" disabled={submitting}>
+              {submitting ? "Submitting..." : "Apply"}
             </button>
           </form>
         </section>

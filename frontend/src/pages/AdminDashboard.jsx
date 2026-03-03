@@ -12,17 +12,36 @@ function AdminDashboard() {
   const [loans, setLoans] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // 🔥 FETCH LOANS FROM BACKEND
+  // 🔐 Check Admin Auth
   useEffect(() => {
+    const token = localStorage.getItem("token");
+    const role = localStorage.getItem("role");
+
+    if (!token || role !== "ADMIN") {
+      navigate("/");
+      return;
+    }
+
     fetchLoans();
   }, []);
 
+  // 🔥 Fetch Loans (Production)
   const fetchLoans = async () => {
     try {
-      const res = await API.get("/loans");
+      const res = await API.get("/loans", {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+
       setLoans(res.data);
     } catch (error) {
       console.error("Error fetching loans:", error);
+
+      if (error.response?.status === 401) {
+        localStorage.clear();
+        navigate("/");
+      }
     } finally {
       setLoading(false);
     }
@@ -37,27 +56,55 @@ function AdminDashboard() {
     );
   };
 
-  // 🔥 APPROVE LOAN (Send Interest to Backend)
+  // 🔥 Approve Loan
   const approveLoan = async (id, interest) => {
     if (!window.confirm("Approve this loan?")) return;
 
     try {
-      await API.put(`/loans/${id}/approve`, { interest });
+      await API.put(
+        `/loans/${id}/approve`,
+        { interest },
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+
       fetchLoans();
     } catch (error) {
       console.error("Approve failed:", error);
+
+      if (error.response?.status === 401) {
+        localStorage.clear();
+        navigate("/");
+      }
     }
   };
 
-  // 🔥 REJECT LOAN
+  // 🔥 Reject Loan
   const rejectLoan = async (id) => {
     if (!window.confirm("Reject this loan?")) return;
 
     try {
-      await API.put(`/loans/${id}/reject`);
+      await API.put(
+        `/loans/${id}/reject`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+
       fetchLoans();
     } catch (error) {
       console.error("Reject failed:", error);
+
+      if (error.response?.status === 401) {
+        localStorage.clear();
+        navigate("/");
+      }
     }
   };
 
@@ -66,7 +113,7 @@ function AdminDashboard() {
     navigate("/");
   };
 
-  // --- Derived Stats ---
+  // --- Stats ---
   const approvedCount = loans.filter((l) => l.status === "APPROVED").length;
   const rejectedCount = loans.filter((l) => l.status === "REJECTED").length;
 
@@ -101,7 +148,6 @@ function AdminDashboard() {
   return (
     <div className="admin-layout dark-theme">
 
-      {/* Sidebar */}
       <aside className="sidebar">
         <h2 className="logo">LoanPro</h2>
         <ul>
@@ -111,7 +157,9 @@ function AdminDashboard() {
         </ul>
         <div className="spacer"></div>
         <ul>
-          <li onClick={handleLogout} className="logout-link">Logout</li>
+          <li onClick={handleLogout} className="logout-link">
+            Logout
+          </li>
         </ul>
       </aside>
 
@@ -121,7 +169,6 @@ function AdminDashboard() {
           <h1>Admin Dashboard</h1>
         </header>
 
-        {/* Stats */}
         <section className="stats-row">
           <div className="stat-box">
             <p>Approved</p>
@@ -141,14 +188,12 @@ function AdminDashboard() {
           </div>
         </section>
 
-        {/* Chart */}
         <section className="chart-box">
-          <div className="pie-wrapper">
+          <div style={{ height: "300px" }}>
             <Pie data={statusPieData} options={chartOptions} />
           </div>
         </section>
 
-        {/* Table */}
         <section className="table-box">
           <table>
             <thead>

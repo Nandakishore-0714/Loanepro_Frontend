@@ -1,59 +1,36 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import API from "../services/api";
 import "../styles.css";
 
-function Login() {
+function Register() {
   const navigate = useNavigate();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [loginRole, setLoginRole] = useState("USER");
+  const [role, setRole] = useState("USER");
   const [loading, setLoading] = useState(false);
 
-  // 🔐 Redirect if already logged in
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    const role = localStorage.getItem("role");
-
-    if (token && role) {
-      if (role === "ADMIN") {
-        navigate("/admin");
-      } else {
-        navigate("/user");
-      }
-    }
-  }, [navigate]);
-
-  const handleSubmit = async (e) => {
+  const handleRegister = async (e) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      const res = await API.post("/auth/login", {
+      await API.post("/auth/register", {
         email,
         password,
+        role,
       });
 
-      const { token, role } = res.data;
-
-      // Save token + role
-      localStorage.setItem("token", token);
-      localStorage.setItem("role", role);
-
-      // Role-based redirect
-      if (role === "ADMIN") {
-        navigate("/admin");
-      } else {
-        navigate("/user");
-      }
+      alert("Registration successful! Please login.");
+      navigate("/login");
 
     } catch (error) {
-      console.error("Login failed:", error);
+      console.error("Registration failed:", error);
 
       alert(
         error.response?.data?.message ||
-        "Invalid credentials. Please try again."
+        "Registration failed. Please try again."
       );
     } finally {
       setLoading(false);
@@ -77,17 +54,17 @@ function Login() {
 
         {/* RIGHT SIDE */}
         <div className="login-right">
-          <h2>Welcome Back</h2>
+          <h2>Create Account</h2>
 
-          <form className="login-form" onSubmit={handleSubmit}>
+          <form className="login-form" onSubmit={handleRegister}>
 
-            {/* Role Selection */}
+            {/* Role */}
             <div className="form-group">
-              <label>Login As</label>
+              <label>Register As</label>
               <div className="select-wrapper">
                 <select
-                  value={loginRole}
-                  onChange={(e) => setLoginRole(e.target.value)}
+                  value={role}
+                  onChange={(e) => setRole(e.target.value)}
                 >
                   <option value="USER">User</option>
                   <option value="ADMIN">Admin</option>
@@ -110,27 +87,26 @@ function Login() {
             <div className="form-group">
               <input
                 type="password"
-                placeholder="Password"
+                placeholder="Password (min 6 characters)"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                minLength={6}
                 required
               />
             </div>
 
-            {/* Submit */}
             <button
               type="submit"
               className="login-btn"
               disabled={loading}
             >
-              {loading ? "Logging in..." : "Login"}
+              {loading ? "Registering..." : "Register"}
             </button>
 
-            {/* Register Link */}
             <p className="switch-link">
-              New user?
-              <span onClick={() => navigate("/register")}>
-                Create Account
+              Already have an account?
+              <span onClick={() => navigate("/login")}>
+                Login
               </span>
             </p>
 
@@ -142,4 +118,4 @@ function Login() {
   );
 }
 
-export default Login;
+export default Register;
