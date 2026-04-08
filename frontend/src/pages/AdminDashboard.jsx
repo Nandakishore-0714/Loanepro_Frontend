@@ -8,46 +8,36 @@ import "../styles.css";
 ChartJS.register(ArcElement, Tooltip, Legend);
 
 function AdminDashboard() {
+
   const navigate = useNavigate();
   const [loans, setLoans] = useState([]);
   const [loading, setLoading] = useState(true);
 
   // 🔐 Check Admin Auth
   useEffect(() => {
-    const token = localStorage.getItem("token");
     const role = localStorage.getItem("role");
 
-    if (!token || role !== "ADMIN") {
+    if (role !== "ADMIN") {
       navigate("/");
       return;
     }
 
     fetchLoans();
-  }, []);
+  }, [navigate]);
 
-  // 🔥 Fetch Loans (Production)
+  // 🔥 Fetch Loans
   const fetchLoans = async () => {
     try {
-      const res = await API.get("/loans", {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      });
-
+      const res = await API.get("/loans");
       setLoans(res.data);
     } catch (error) {
       console.error("Error fetching loans:", error);
-
-      if (error.response?.status === 401) {
-        localStorage.clear();
-        navigate("/");
-      }
     } finally {
       setLoading(false);
     }
   };
 
-  // 🔥 Update Interest Locally Before Approval
+  // 🔥 Update Interest locally
   const handleInterestChange = (id, value) => {
     setLoans(
       loans.map((loan) =>
@@ -61,24 +51,10 @@ function AdminDashboard() {
     if (!window.confirm("Approve this loan?")) return;
 
     try {
-      await API.put(
-        `/loans/${id}/approve`,
-        { interest },
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        }
-      );
-
+      await API.put(`/loans/${id}/approve`, { interest });
       fetchLoans();
     } catch (error) {
       console.error("Approve failed:", error);
-
-      if (error.response?.status === 401) {
-        localStorage.clear();
-        navigate("/");
-      }
     }
   };
 
@@ -87,33 +63,20 @@ function AdminDashboard() {
     if (!window.confirm("Reject this loan?")) return;
 
     try {
-      await API.put(
-        `/loans/${id}/reject`,
-        {},
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        }
-      );
-
+      await API.put(`/loans/${id}/reject`);
       fetchLoans();
     } catch (error) {
       console.error("Reject failed:", error);
-
-      if (error.response?.status === 401) {
-        localStorage.clear();
-        navigate("/");
-      }
     }
   };
 
+  // 🔓 Logout
   const handleLogout = () => {
     localStorage.clear();
     navigate("/");
   };
 
-  // --- Stats ---
+  // 📊 Stats
   const approvedCount = loans.filter((l) => l.status === "APPROVED").length;
   const rejectedCount = loans.filter((l) => l.status === "REJECTED").length;
 
@@ -150,12 +113,15 @@ function AdminDashboard() {
 
       <aside className="sidebar">
         <h2 className="logo">LoanPro</h2>
+
         <ul>
           <li className="active">Dashboard</li>
           <li>Loan Requests</li>
           <li>Reports</li>
         </ul>
+
         <div className="spacer"></div>
+
         <ul>
           <li onClick={handleLogout} className="logout-link">
             Logout
@@ -174,14 +140,17 @@ function AdminDashboard() {
             <p>Approved</p>
             <h3>{approvedCount}</h3>
           </div>
+
           <div className="stat-box">
             <p>Rejected</p>
             <h3>{rejectedCount}</h3>
           </div>
+
           <div className="stat-box highlight">
             <p>Total Loaned</p>
             <h3>₹{totalLoaned.toLocaleString("en-IN")}</h3>
           </div>
+
           <div className="stat-box highlight-alt">
             <p>Expected Interest</p>
             <h3>₹{totalInterest.toLocaleString("en-IN")}</h3>
@@ -205,11 +174,17 @@ function AdminDashboard() {
                 <th>Action</th>
               </tr>
             </thead>
+
             <tbody>
               {loans.map((loan) => (
                 <tr key={loan.id}>
+
                   <td>{loan.userName}</td>
-                  <td>₹{loan.amount.toLocaleString("en-IN")}</td>
+
+                  <td>
+                    ₹{loan.amount.toLocaleString("en-IN")}
+                  </td>
+
                   <td>
                     <input
                       type="number"
@@ -221,11 +196,13 @@ function AdminDashboard() {
                       className="interest-input"
                     />
                   </td>
+
                   <td>
                     <span className={`status ${loan.status.toLowerCase()}`}>
                       {loan.status}
                     </span>
                   </td>
+
                   <td>
                     <button
                       className="approve-btn"
@@ -236,6 +213,7 @@ function AdminDashboard() {
                     >
                       Approve
                     </button>
+
                     <button
                       className="reject-btn"
                       disabled={loan.status !== "PENDING"}
@@ -244,13 +222,16 @@ function AdminDashboard() {
                       Reject
                     </button>
                   </td>
+
                 </tr>
               ))}
             </tbody>
+
           </table>
         </section>
 
       </main>
+
     </div>
   );
 }

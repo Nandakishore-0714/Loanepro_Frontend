@@ -11,7 +11,7 @@ function Login() {
   const [loginRole, setLoginRole] = useState("USER");
   const [loading, setLoading] = useState(false);
 
-  // 🔐 Redirect if already logged in
+  // Redirect if already logged in
   useEffect(() => {
     const token = localStorage.getItem("token");
     const role = localStorage.getItem("role");
@@ -33,15 +33,20 @@ function Login() {
       const res = await API.post("/auth/login", {
         email,
         password,
+        role: loginRole   // ✅ correct
       });
 
-      const { token, role } = res.data;
+      const { role, id } = res.data;
 
-      // Save token + role
+      // Backend doesn't use JWT, so create simple token
+      const token = "loggedin";
+
+      // Save login info
       localStorage.setItem("token", token);
       localStorage.setItem("role", role);
+      localStorage.setItem("userId", id);
 
-      // Role-based redirect
+      // Redirect based on role
       if (role === "ADMIN") {
         navigate("/admin");
       } else {
@@ -53,8 +58,9 @@ function Login() {
 
       alert(
         error.response?.data?.message ||
-        "Invalid credentials. Please try again."
+        "Invalid email or password."
       );
+
     } finally {
       setLoading(false);
     }
@@ -117,7 +123,7 @@ function Login() {
               />
             </div>
 
-            {/* Submit */}
+            {/* Login Button */}
             <button
               type="submit"
               className="login-btn"
@@ -126,7 +132,7 @@ function Login() {
               {loading ? "Logging in..." : "Login"}
             </button>
 
-            {/* Register Link */}
+            {/* Register */}
             <p className="switch-link">
               New user?
               <span onClick={() => navigate("/register")}>
