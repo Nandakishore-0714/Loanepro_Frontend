@@ -45,7 +45,7 @@ function Register() {
         <div className="login-left">
           <div className="brand-content">
             <h1>LoanPro</h1>
-            <p>SDC - PROJECT 3</p>
+            <p>SDC - PROJECT 15</p>
             <div className="badge-pill">
               SECURE • FAST • TRANSPARENT
             </div>

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import API from "../services/api";
 import "../styles.css";
@@ -11,6 +11,9 @@ function UserDashboard() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
+  // Active tab (optional highlight)
+  const [activeTab, setActiveTab] = useState("dashboard");
+
   // Loan Form
   const [amount, setAmount] = useState("");
   const [purpose, setPurpose] = useState("");
@@ -21,6 +24,8 @@ function UserDashboard() {
   const [calcRate, setCalcRate] = useState(8);
   const [calcDuration, setCalcDuration] = useState(12);
 
+  // 🔹 Ref for scrolling
+  const loansSectionRef = useRef(null);
 
   // 🔐 Authentication Check
   useEffect(() => {
@@ -38,50 +43,36 @@ function UserDashboard() {
 
   }, [navigate]);
 
-
   // 🔥 FETCH USER LOANS
   const fetchLoans = async () => {
-
     try {
-
       const userId = localStorage.getItem("userId");
-
       const res = await API.get(`/loans/my/${userId}`);
-
       setMyLoans(res.data);
-
     } catch (error) {
-
       console.error("Error fetching loans:", error);
 
       if (error.response?.status === 401) {
         localStorage.clear();
         navigate("/");
       }
-
     } finally {
       setLoading(false);
     }
-
   };
-
 
   // 🔥 APPLY LOAN
   const handleApply = async (e) => {
-
     e.preventDefault();
     setSubmitting(true);
 
     try {
-
       const userId = localStorage.getItem("userId");
 
       await API.post(`/loans/apply/${userId}`, {
-
         amount: Number(amount),
         purpose,
         duration: Number(duration)
-
       });
 
       setAmount("");
@@ -91,26 +82,21 @@ function UserDashboard() {
       fetchLoans();
 
     } catch (error) {
-
       console.error("Apply failed:", error);
 
       if (error.response?.status === 401) {
         localStorage.clear();
         navigate("/");
       }
-
     } finally {
       setSubmitting(false);
     }
-
   };
-
 
   const handleLogout = () => {
     localStorage.clear();
     navigate("/");
   };
-
 
   // EMI CALCULATOR
   const calculatedInterest =
@@ -121,11 +107,9 @@ function UserDashboard() {
   const monthlyInstallment =
     calcDuration > 0 ? totalPayable / calcDuration : 0;
 
-
   if (loading) {
     return <h2 style={{ padding: "40px" }}>Loading dashboard...</h2>;
   }
-
 
   return (
     <div className="admin-layout dark-theme">
@@ -136,8 +120,22 @@ function UserDashboard() {
         <h2 className="logo">LoanPro</h2>
 
         <ul>
-          <li className="active">Dashboard</li>
-          <li>My Loans</li>
+          <li
+            className={activeTab === "dashboard" ? "active" : ""}
+            onClick={() => setActiveTab("dashboard")}
+          >
+            Dashboard
+          </li>
+
+          <li
+            className={activeTab === "loans" ? "active" : ""}
+            onClick={() => {
+              setActiveTab("loans");
+              loansSectionRef.current.scrollIntoView({ behavior: "smooth" });
+            }}
+          >
+            My Loans
+          </li>
         </ul>
 
         <div className="spacer"></div>
@@ -150,14 +148,12 @@ function UserDashboard() {
 
       </aside>
 
-
       {/* Main Content */}
       <main className="main-content">
 
         <header className="topbar">
           <h1>User Dashboard</h1>
         </header>
-
 
         {/* EMI Calculator */}
         <section className="table-box" style={{ marginBottom: "32px" }}>
@@ -197,7 +193,6 @@ function UserDashboard() {
 
           </div>
 
-
           <div className="stats-row">
 
             <div className="stat-box highlight">
@@ -218,7 +213,6 @@ function UserDashboard() {
           </div>
 
         </section>
-
 
         {/* Apply Loan */}
         <section className="table-box" style={{ marginBottom: "32px" }}>
@@ -268,12 +262,11 @@ function UserDashboard() {
 
         </section>
 
-
-        {/* My Loans */}
-        <section className="table-box">
+        {/* My Loans Section */}
+        <section className="table-box" ref={loansSectionRef}>
 
           <h3 style={{ marginBottom: "20px" }}>
-            My Applications
+            My Loans
           </h3>
 
           <table>
